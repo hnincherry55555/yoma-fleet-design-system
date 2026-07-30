@@ -1,0 +1,109 @@
+name: Token Sync
+
+on:
+  push:
+    paths:
+      - "src/design/tokens.json"
+  workflow_dispatch:
+    inputs:
+      create_pr:
+        description: "Create a PR with the generated changes"
+        type: boolean
+        default: true
+
+concurrency:
+  group: token-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run token transformer
+        run: npm run sync-tokens
+
+      - name: Validate compliance (no hardcoded hex)
+        run: |
+          if grep -rn '#[0-9a-fA-F]\{3,8\}' src/components/ --include='*.tsx' --include='*.ts' | grep -v 'hex:\|"#\|light:\|dark:'; then
+            echo "::error::Found hardcoded hex values in components"
+            exit 1
+          fi
+
+      - name: Validate compliance (no arbitrary colors)
+        run: |
+          if grep -rn '\[#' src/components/ --include='*.tsx' --include='*.ts'; then
+            echo "::error::Found Tailwind arbitrary color values in components"
+            exit 1
+          fi
+
+      - name: Validate compliance (no Tailwind defaults)
+        run: |
+          if grep -rEn 'bg-(gray|slate|zinc|stone|neutral|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-[0-9]' src/components/ --include='*.tsx' --include='*.ts'; then
+            echo "::error::Found Tailwind default palette usage in components"
+            exit 1
+          fi
+
+      - name: Build
+        run: npm run build
+
+      - name: Check for generated file changes
+        id: changes
+        run: |
+          if git diff --quiet src/design/tokens.css src/design/theme.css; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Auto-commit generated CSS
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/design/tokens.css src/design/theme.css
+          git commit -m "chore: regenerate token CSS from tokens.json"
+          git push
+
+      - name: Create PR
+        if: |
+          steps.changes.outputs.changed == 'true' &&
+          github.ref_name != 'main' &&
+          (github.event_name == 'push' || inputs.create_pr)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing=$(gh pr list --head "${{ github.ref_name }}" --json number --jq 'length')
+          if [ "$existing" = "0" ]; then
+            gh pr create \
+              --title "chore: update design tokens" \
+              --body "$(cat <<'EOF'
+          ## Summary
+          - Updated `tokens.json` from Figma Variable Visualizer export
+          - Auto-regenerated `tokens.css` and `theme.css`
+          - All compliance checks passed
+
+          ## Review checklist
+          - [ ] Check the Vercel preview in light mode
+          - [ ] Check the Vercel preview in dark mode
+          - [ ] Verify no visual regressions in components
+          EOF
+          )"
+          else
+            echo "PR already exists for this branch"
+          fi
