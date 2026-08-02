@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "npm run sync-tokens",
     "dev": "next dev",
+    "prebuild": "npm run sync-tokens",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,7 +15,7 @@
     "validate:arbitrary": "! grep -rn '\\[#' src/components/ --include='*.tsx' --include='*.ts'",
     "validate:defaults": "! grep -rEn 'bg-(gray|slate|zinc)-[0-9]' src/components/ --include='*.tsx' --include='*.ts'",
     "validate": "npm run validate:hex && npm run validate:arbitrary && npm run validate:defaults",
-    "ci": "npm run sync-tokens && npm run validate && npm run lint && npm run build"
+    "ci": "npm run validate && npm run lint && npm run build"
   },
   "dependencies": {
     "next": "16.2.12",

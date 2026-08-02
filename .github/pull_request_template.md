@@ -13,4 +13,7 @@
 
 If this PR updates `tokens.json`:
 - [ ] Exported from Figma using Variable Visualizer
-- [ ] Generated CSS files (`tokens.css`, `theme.css`) are included
+- [ ] Checked the rendered colors on the preview, not just the JSON diff
+
+`tokens.css` and `theme.css` are generated at build time and are not tracked in
+git, so there is nothing to commit alongside `tokens.json`.
