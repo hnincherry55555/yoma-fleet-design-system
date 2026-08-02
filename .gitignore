@@ -43,3 +43,4 @@ next-env.d.ts
 # generated design tokens (built from src/design/tokens.json by the prebuild hook)
 src/design/tokens.css
 src/design/theme.css
+src/design/tokens.generated.ts
