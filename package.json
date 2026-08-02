@@ -11,7 +11,7 @@
     "lint": "eslint",
     "sync-tokens": "tsx scripts/generate-tailwind-theme.ts",
     "presync-tokens": "echo 'Reading src/design/tokens.json...'",
-    "validate:hex": "! grep -rn '#[0-9a-fA-F]\\{3,8\\}' src/components/ --include='*.tsx' --include='*.ts' | grep -v 'hex:\\|\"#\\|light:\\|dark:'",
+    "validate:hex": "! grep -rn '#[0-9a-fA-F]\\{3,8\\}' src/components/ --include='*.tsx' --include='*.ts'",
     "validate:arbitrary": "! grep -rn '\\[#' src/components/ --include='*.tsx' --include='*.ts'",
     "validate:defaults": "! grep -rEn 'bg-(gray|slate|zinc)-[0-9]' src/components/ --include='*.tsx' --include='*.ts'",
     "validate": "npm run validate:hex && npm run validate:arbitrary && npm run validate:defaults",
